@@ -1,0 +1,11 @@
+pdfplumber
+numpy
+pandas
+opencv-python
+pymupdf
+pytesseract
+pillow
+streamlit
+fastapi
+uvicorn[standard]
+python-multipart
