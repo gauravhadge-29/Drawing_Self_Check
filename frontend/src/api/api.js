@@ -4,21 +4,24 @@ import axios from 'axios';
  * API layer — all backend communication is centralised here.
  *
  * The FastAPI backend is expected at http://localhost:8000.
- * During `npm run dev`, Vite proxies /validate-drawing to that origin
- * so no CORS headers are needed on the backend for local development.
+ * Set VITE_API_BASE_URL to override for different environments.
  */
-const BASE_URL = 'http://localhost:7000';
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:7000';
 
 /**
  * uploadDrawing — sends a PDF file to the validation endpoint.
  *
  * @param   {File}    file  The PDF engineering drawing to validate.
- * @returns {Promise<{summary: {pass: number, fail: number}, items: Array}>}
+ * @returns {Promise<{
+ *   summary: {pass: number, fail: number},
+ *   callout_validation: Array,
+ *   material_validation: Object
+ * }>}
  *
  * Example response shape:
  * {
  *   "summary": { "pass": 8, "fail": 0 },
- *   "items": [
+ *   "callout_validation": [
  *     {
  *       "item": 1,
  *       "description": "BASE PLATE",
@@ -27,7 +30,13 @@ const BASE_URL = 'http://localhost:7000';
  *       "status": "PASS"
  *     },
  *     ...
- *   ]
+ *   ],
+ *   "material_validation": {
+ *     "material": "EN8",
+ *     "surface_finish": "BLACKODISING",
+ *     "status": "PASS",
+ *     "allowed_finishes": ["BLACKODISING"]
+ *   }
  * }
  */
 export async function uploadDrawing(file) {

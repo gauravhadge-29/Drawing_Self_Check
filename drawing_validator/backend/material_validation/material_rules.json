@@ -1,0 +1,46 @@
+{
+  "EN8": {
+    "base_material": "Steel for Machine Structural Use",
+    "allowed_finishes": ["BLACKODISING"]
+  },
+  "80M40": {
+    "base_material": "Steel for Machine Structural Use",
+    "allowed_finishes": ["BLACKODISING"]
+  },
+  "SM45C": {
+    "base_material": "Steel for Machine Structural Use",
+    "allowed_finishes": ["BLACKODISING"]
+  },
+  "S275J2H": {
+    "base_material": "Low Carbon Steel",
+    "allowed_finishes": ["BLACKODISING", "PAINTING"]
+  },
+  "S275JR": {
+    "base_material": "Low Carbon Steel",
+    "allowed_finishes": ["BLACKODISING", "PAINTING"]
+  },
+  "SS304": {
+    "base_material": "Stainless Steel",
+    "allowed_finishes": ["POLISHED", "NATURAL"]
+  },
+  "X5CRNI18-10": {
+    "base_material": "Stainless Steel",
+    "allowed_finishes": ["POLISHED", "NATURAL"]
+  },
+  "SS302": {
+    "base_material": "Stainless Steel Spring Steel",
+    "allowed_finishes": ["NATURAL"]
+  },
+  "6082-T651": {
+    "base_material": "Medium Strength Aluminum",
+    "allowed_finishes": ["CLEAR ANODISED"]
+  },
+  "7075-T6": {
+    "base_material": "High Strength Aluminum",
+    "allowed_finishes": ["CLEAR ANODISED"]
+  },
+  "NYLON 6": {
+    "base_material": "Polymer",
+    "allowed_finishes": ["NATURAL"]
+  }
+}

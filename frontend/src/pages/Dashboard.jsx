@@ -13,6 +13,7 @@ import UploadPanel from '../components/UploadPanel';
 import PdfViewer from '../components/PdfViewer';
 import SummaryCards from '../components/SummaryCards';
 import ValidationTable from '../components/ValidationTable';
+import MaterialValidationCard from '../components/MaterialValidationCard';
 import { uploadDrawing } from '../api/api';
 
 /**
@@ -169,9 +170,22 @@ function Dashboard() {
                 >
                   <SummaryCards summary={results?.summary ?? null} loading={loading} />
 
-                  <Box sx={{ flexGrow: 1 }}>
-                    <ValidationTable items={results?.items ?? null} loading={loading} />
-                  </Box>
+                  <Grid container spacing={2} sx={{ flexGrow: 1 }}>
+                    <Grid item xs={12} md={8} sx={{ display: 'flex', flexDirection: 'column' }}>
+                      <Box sx={{ flexGrow: 1 }}>
+                        <ValidationTable
+                          items={results?.callout_validation ?? results?.items ?? null}
+                          loading={loading}
+                        />
+                      </Box>
+                    </Grid>
+                    <Grid item xs={12} md={4}>
+                      <MaterialValidationCard
+                        materialValidation={results?.material_validation ?? null}
+                        loading={loading}
+                      />
+                    </Grid>
+                  </Grid>
                 </Grid>
               </Grid>
             </Container>
