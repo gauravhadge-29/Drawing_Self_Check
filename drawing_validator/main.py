@@ -16,6 +16,8 @@ from detection.callout_detector import detect_callouts_all_pages
 from parsing.bom_parser import parse_bom_table
 from pdf_reader.table_extractor import extract_first_page_tables
 from validation.validator import ValidationEngine, ValidationResult
+from backend.part_validation.part_extractor import extract_parts_from_pages
+from backend.part_validation.part_validator import validate_parts_existence
 
 
 @dataclass(frozen=True)
@@ -26,6 +28,7 @@ class PipelineOutput:
     detected_callouts: dict[int, int]       # aggregated across all pages
     per_page_callouts: dict[int, dict[int, int]]  # breakdown per page
     material_validation: dict[str, object]
+    part_validation: list[dict]
 
 
 @dataclass(frozen=True)
@@ -33,6 +36,7 @@ class PipelineApiOutput:
     summary: dict[str, int]
     callout_validation: list[dict[str, object]]
     material_validation: dict[str, object]
+    part_validation: list[dict]
 
 
 def _build_page_breakdown(per_page: dict[int, dict[int, int]]) -> str:
@@ -68,6 +72,10 @@ def run_pipeline_detailed(pdf_path: str | Path) -> PipelineOutput:
     extracted_material = extract_material_and_finish(pdf_path)
     material_validation = validate_material_and_finish(extracted_material)
 
+    # Step 5: Extract parts from pages 2+ and validate against BOM
+    detected_parts = extract_parts_from_pages(pdf_path)
+    part_validation = validate_parts_existence(bom, detected_parts)
+
     report_sections = []
 
     page_breakdown = _build_page_breakdown(per_page_callouts)
@@ -102,6 +110,7 @@ def run_pipeline_detailed(pdf_path: str | Path) -> PipelineOutput:
         detected_callouts=detected_callouts,
         per_page_callouts=per_page_callouts,
         material_validation=material_validation,
+        part_validation=part_validation,
     )
 
 
@@ -128,6 +137,7 @@ def build_pipeline_api_output(pdf_path: str | Path) -> PipelineApiOutput:
         summary=summary,
         callout_validation=callout_validation,
         material_validation=output.material_validation,
+        part_validation=output.part_validation,
     )
 
 
@@ -159,11 +169,21 @@ class MaterialValidationModel(BaseModel):
     message: str | None = None
 
 
+class PartValidationItemModel(BaseModel):
+    item: int | str
+    description: str
+    part_found: bool | None = None
+    status: str
+    part_number: str | None = None
+    message: str | None = None
+
+
 class ValidationResponseModel(BaseModel):
     summary: ValidationSummaryModel
     callout_validation: list[ValidationItemModel]
     items: list[ValidationItemModel] | None = None
     material_validation: MaterialValidationModel
+    part_validation: list[PartValidationItemModel]
 
 
 app = FastAPI(
@@ -215,6 +235,7 @@ async def validate_drawing(file: UploadFile = File(...)) -> ValidationResponseMo
             callout_validation=[ValidationItemModel(**row) for row in api_payload.callout_validation],
             items=[ValidationItemModel(**row) for row in api_payload.callout_validation],
             material_validation=MaterialValidationModel(**api_payload.material_validation),
+            part_validation=[PartValidationItemModel(**row) for row in api_payload.part_validation],
         )
     except HTTPException:
         raise

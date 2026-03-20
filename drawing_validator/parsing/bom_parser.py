@@ -36,12 +36,13 @@ def _is_integer_like(text: str) -> bool:
     return bool(re.fullmatch(r"\d+(?:\.0+)?", text.strip()))
 
 
-def _parse_headerless_bom_row(row: list[str | None]) -> tuple[int, str, int] | None:
+def _parse_headerless_bom_row(row: list[str | None]) -> tuple[int, str, str, int] | None:
     """Parse item number, description, and quantity from a row that has no header row."""
     if len(row) < 4:
         return None
 
     item_text = _normalize_cell(row[0])
+    part_number = _normalize_cell(row[1])
     description = _normalize_cell(row[2])
     qty_text = _normalize_cell(row[3])
 
@@ -52,7 +53,7 @@ def _parse_headerless_bom_row(row: list[str | None]) -> tuple[int, str, int] | N
     if not _is_integer_like(qty_text):
         return None
 
-    return int(float(item_text)), description.upper(), int(float(qty_text))
+    return int(float(item_text)), part_number, description.upper(), int(float(qty_text))
 
 
 def parse_bom_table(tables: list[list[list[str | None]]]) -> dict[int, dict[str, str | int]]:
@@ -78,6 +79,7 @@ def parse_bom_table(tables: list[list[list[str | None]]]) -> dict[int, dict[str,
                     continue
 
                 item_text = _normalize_cell(data_row[header_map["ITEM"]])
+                part_number = _normalize_cell(data_row[header_map["PART NUMBER"]])
                 description = _normalize_cell(data_row[header_map["DESCRIPTION"]])
                 qty_text = _normalize_cell(data_row[header_map["QTY"]])
 
@@ -87,6 +89,7 @@ def parse_bom_table(tables: list[list[list[str | None]]]) -> dict[int, dict[str,
                     continue
 
                 bom[int(float(item_text))] = {
+                    "part_number": part_number,
                     "description": description.upper(),
                     "qty": int(float(qty_text)),
                 }
@@ -106,8 +109,8 @@ def parse_bom_table(tables: list[list[list[str | None]]]) -> dict[int, dict[str,
             parsed = _parse_headerless_bom_row(row)
             if parsed is None:
                 continue
-            item_num, description, qty = parsed
-            bom[item_num] = {"description": description, "qty": qty}
+            item_num, part_number, description, qty = parsed
+            bom[item_num] = {"part_number": part_number, "description": description, "qty": qty}
 
         if len(bom) > len(best):
             best = bom
