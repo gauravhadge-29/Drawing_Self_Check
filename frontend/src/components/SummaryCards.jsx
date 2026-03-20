@@ -1,129 +1,76 @@
 import React from 'react';
-import { Grid, Card, CardContent, Typography, Box, Skeleton } from '@mui/material';
-import CheckCircleRoundedIcon from '@mui/icons-material/CheckCircleRounded';
-import ErrorRoundedIcon from '@mui/icons-material/ErrorRounded';
-import LayersIcon from '@mui/icons-material/Layers';
+import { 
+  CheckCircle2, 
+  XCircle, 
+  Layers, 
+  Loader2 
+} from 'lucide-react';
+import { cn } from '../utils/utils';
 
-/**
- * SummaryCards — three metric cards showing Total / PASS / FAIL counts.
- *
- * Props:
- *   summary  {{ pass: number, fail: number } | null}
- *   loading  {boolean}
- */
-function SummaryCards({ summary, loading }) {
+export function SummaryCards({ summary, loading }) {
   if (loading) {
     return (
-      <Grid container spacing={2} sx={{ mb: 2 }}>
+      <div className="grid grid-cols-3 gap-4 mb-6">
         {[0, 1, 2].map((i) => (
-          <Grid item xs={4} key={i}>
-            <Skeleton variant="rounded" height={90} sx={{ borderRadius: 3 }} />
-          </Grid>
+          <div key={i} className="h-24 bg-slate-200 animate-pulse rounded-2xl" />
         ))}
-      </Grid>
+      </div>
     );
   }
 
-  const pass  = summary?.pass  ?? null;
-  const fail  = summary?.fail  ?? null;
-  const total = pass !== null && fail !== null ? pass + fail : null;
+  const pass = summary?.pass ?? 0;
+  const fail = summary?.fail ?? 0;
+  const total = pass + fail;
 
   return (
-    <Grid container spacing={2} sx={{ mb: 2 }}>
-      {/* Total */}
-      <Grid item xs={4}>
-        <MetricCard
-          label="Total Items"
-          value={total}
-          icon={<LayersIcon sx={{ fontSize: 26 }} />}
-          bg="#F0F4FF"
-          colour="#0D47A1"
-        />
-      </Grid>
-
-      {/* PASS */}
-      <Grid item xs={4}>
-        <MetricCard
-          label="Pass"
-          value={pass}
-          icon={<CheckCircleRoundedIcon sx={{ fontSize: 26 }} />}
-          bg="#E8F5E9"
-          colour="#2E7D32"
-        />
-      </Grid>
-
-      {/* FAIL */}
-      <Grid item xs={4}>
-        <MetricCard
-          label="Fail"
-          value={fail}
-          icon={<ErrorRoundedIcon sx={{ fontSize: 26 }} />}
-          bg="#FFEBEE"
-          colour="#C62828"
-        />
-      </Grid>
-    </Grid>
+    <div className="grid grid-cols-3 gap-4 mb-6">
+      <MetricCard
+        label="Total Items"
+        value={total}
+        icon={Layers}
+        color="blue"
+      />
+      <MetricCard
+        label="Passed"
+        value={pass}
+        icon={CheckCircle2}
+        color="green"
+      />
+      <MetricCard
+        label="Failed"
+        value={fail}
+        icon={XCircle}
+        color="red"
+      />
+    </div>
   );
 }
 
-/**
- * MetricCard — single coloured metric tile.
- */
-function MetricCard({ label, value, icon, bg, colour }) {
-  const isEmpty = value === null;
+function MetricCard({ label, value, icon: Icon, color }) {
+  const colorClasses = {
+    blue: "bg-white text-slate-900 border-slate-200",
+    green: "bg-white text-slate-900 border-emerald-200",
+    red: "bg-white text-slate-900 border-red-200",
+  };
+
+  const iconClasses = {
+    blue: "bg-slate-100 text-primary",
+    green: "bg-emerald-100 text-emerald-700",
+    red: "bg-red-100 text-red-700",
+  };
 
   return (
-    <Card
-      elevation={0}
-      sx={{
-        background: bg,
-        border: `1px solid ${colour}1A`,
-        borderRadius: 3,
-        transition: 'transform 0.15s ease, box-shadow 0.15s ease',
-        '&:hover': {
-          transform: 'translateY(-2px)',
-          boxShadow: `0 6px 20px ${colour}22`,
-        },
-      }}
-    >
-      <CardContent sx={{ p: '14px 16px !important' }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Box>
-            <Typography
-              variant="caption"
-              sx={{
-                display: 'block',
-                color: colour,
-                fontWeight: 700,
-                fontSize: '0.68rem',
-                letterSpacing: '0.09em',
-                textTransform: 'uppercase',
-                mb: 0.4,
-              }}
-            >
-              {label}
-            </Typography>
-            <Typography
-              variant="h4"
-              sx={{
-                color: colour,
-                fontWeight: 800,
-                lineHeight: 1,
-                opacity: isEmpty ? 0.25 : 1,
-                fontSize: { xs: '1.6rem', sm: '2rem' },
-              }}
-            >
-              {isEmpty ? '—' : value}
-            </Typography>
-          </Box>
-
-          <Box sx={{ color: colour, opacity: 0.22 }}>
-            {icon}
-          </Box>
-        </Box>
-      </CardContent>
-    </Card>
+    <div className={cn(
+      "p-4 rounded-2xl border transition-all duration-200 hover:shadow-xl hover:-translate-y-1 group",
+      colorClasses[color]
+    )}>
+      <div className="flex items-center justify-between mb-2">
+        <div className={cn("p-2 rounded-xl transition-colors", iconClasses[color])}>
+          <Icon className="w-5 h-5" />
+        </div>
+        <span className="text-2xl font-bold tracking-tight">{value}</span>
+      </div>
+      <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{label}</p>
+    </div>
   );
 }
-
-export default SummaryCards;

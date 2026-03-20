@@ -1,243 +1,191 @@
-import React from 'react';
-import {
-  Card,
-  CardHeader,
-  CardContent,
-  Divider,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Chip,
-  Typography,
-  Box,
-  Skeleton,
-} from '@mui/material';
-import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
-import HighlightOffIcon from '@mui/icons-material/HighlightOff';
-import AssignmentTurnedInIcon from '@mui/icons-material/AssignmentTurnedIn';
+import React, { useState, useMemo } from 'react';
+import { 
+  CheckCircle2, 
+  XCircle, 
+  ClipboardCheck,
+  Search,
+  FileSearch
+} from 'lucide-react';
+import { cn } from '../utils/utils';
 
-/**
- * ValidationTable — tabular view of all BOM validation results.
- *
- * Columns: Item · Description · Expected Qty · Callout Found · Status
- *
- * Props:
- *   items    {Array|null}  Array of validation result objects from the API.
- *   loading  {boolean}
- *
- * Item shape:
- *   { item, description, expected_qty, callout_found, status }
- */
-function ValidationTable({ items, loading }) {
+export function ValidationTable({ items, loading }) {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('ALL'); // ALL, PASS, FAIL
+
+  const filteredItems = useMemo(() => {
+    if (!items) return [];
+    return items.filter(item => {
+      const matchesSearch = 
+        item.item.toString().toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.description.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      const matchesStatus = 
+        statusFilter === 'ALL' || 
+        item.status === statusFilter;
+
+      return matchesSearch && matchesStatus;
+    });
+  }, [items, searchTerm, statusFilter]);
+
   const itemCount = items?.length ?? 0;
 
   return (
-    <Card
-      elevation={0}
-      sx={{ border: '1px solid rgba(0,0,0,0.08)', borderRadius: 3, height: '100%' }}
-    >
-      {/* ── Card header ── */}
-      <CardHeader
-        avatar={
-          <Box
-            sx={{
-              width: 34,
-              height: 34,
-              borderRadius: '9px',
-              background: 'rgba(13,71,161,0.08)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <AssignmentTurnedInIcon sx={{ color: 'primary.main', fontSize: 18 }} />
-          </Box>
-        }
-        title={
-          <Typography variant="subtitle1" fontWeight={700}>
-            Validation Results
-          </Typography>
-        }
-        subheader={
-          <Typography variant="caption" color="text.secondary">
-            {loading
-              ? 'Running…'
-              : items
-              ? `${itemCount} BOM item${itemCount !== 1 ? 's' : ''} checked`
-              : 'Run validation to see results'}
-          </Typography>
-        }
-        sx={{ pb: 0 }}
-      />
+    <div className="panel-industrial overflow-hidden flex flex-col h-full">
+      {/* Header */}
+      <div className="px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 bg-slate-100/70">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-slate-900 flex items-center justify-center text-orange-300 shadow-sm border border-slate-700">
+            <ClipboardCheck className="w-5 h-5" />
+          </div>
+          <div>
+            <h3 className="font-bold text-slate-900 text-sm">Validation Results</h3>
+            <p className="text-[10px] text-slate-600 uppercase tracking-wider font-bold">
+              {loading ? 'Processing...' : items ? `${itemCount} BOM items checked` : 'Ready for validation'}
+            </p>
+          </div>
+        </div>
 
-      <Divider sx={{ mx: 2, mt: 1 }} />
+        {/* Filters */}
+        <div className="flex items-center gap-2">
+          <div className="relative group">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 group-focus-within:text-slate-900 transition-colors" />
+            <input 
+              type="text" 
+              placeholder="Search items..." 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-9 pr-4 py-1.5 bg-white border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-slate-300 focus:border-slate-600 transition-all w-full sm:w-48 shadow-sm"
+            />
+          </div>
+          
+          <div className="flex items-center bg-white border border-slate-300 rounded-lg p-1 shadow-sm">
+            <button 
+              onClick={() => setStatusFilter('ALL')}
+              className={cn(
+                "px-2 py-1 text-[10px] font-bold rounded-md transition-all",
+                statusFilter === 'ALL' ? "bg-slate-800 text-slate-100" : "text-slate-500 hover:text-slate-700"
+              )}
+            >
+              ALL
+            </button>
+            <button 
+              onClick={() => setStatusFilter('PASS')}
+              className={cn(
+                "px-2 py-1 text-[10px] font-bold rounded-md transition-all",
+                statusFilter === 'PASS' ? "bg-emerald-100 text-emerald-700" : "text-slate-500 hover:text-slate-700"
+              )}
+            >
+              PASS
+            </button>
+            <button 
+              onClick={() => setStatusFilter('FAIL')}
+              className={cn(
+                "px-2 py-1 text-[10px] font-bold rounded-md transition-all",
+                statusFilter === 'FAIL' ? "bg-red-100 text-red-700" : "text-slate-500 hover:text-slate-700"
+              )}
+            >
+              FAIL
+            </button>
+          </div>
+        </div>
+      </div>
 
-      {/* ── Card body ── */}
-      <CardContent sx={{ p: 0, '&:last-child': { pb: 0 } }}>
-
-        {/* Loading skeletons */}
-        {loading && (
-          <Box sx={{ p: 2 }}>
-            {Array.from({ length: 6 }).map((_, i) => (
-              <Skeleton
-                key={i}
-                variant="rounded"
-                height={42}
-                sx={{ mb: 1, borderRadius: 2 }}
-              />
+      {/* Table Body */}
+      <div className="flex-1 overflow-auto custom-scrollbar min-h-100">
+        {loading ? (
+          <div className="p-5 space-y-3">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="h-12 bg-slate-100 animate-pulse rounded-xl border border-slate-200" />
             ))}
-          </Box>
+          </div>
+        ) : !items || items.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-full py-20 gap-3 text-slate-500">
+            <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center border border-slate-200">
+              <FileSearch className="w-8 h-8 opacity-20" />
+            </div>
+            <div className="text-center">
+              <p className="text-sm font-medium">No results yet</p>
+              <p className="text-xs">Upload a drawing to begin validation</p>
+            </div>
+          </div>
+        ) : (
+          <table className="w-full text-left border-collapse">
+            <thead className="sticky top-0 bg-white/95 backdrop-blur-sm z-10">
+              <tr>
+                <th className="px-5 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200">Item</th>
+                <th className="px-5 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200">Description</th>
+                <th className="px-5 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200 text-center">Exp. Qty</th>
+                <th className="px-5 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200 text-center">Callout</th>
+                <th className="px-5 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200 text-right">Status</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-200">
+              {filteredItems.map((row, i) => {
+                const isPassed = row.status === 'PASS';
+                return (
+                  <tr 
+                    key={row.item} 
+                    className={cn(
+                      "hover:bg-slate-50 transition-all duration-150 group",
+                      i % 2 === 1 ? "bg-slate-50/50" : "bg-white"
+                    )}
+                  >
+                    <td className="px-5 py-3">
+                      <span className="text-xs font-bold text-slate-900 bg-slate-200 px-2 py-0.5 rounded border border-slate-300">
+                        {row.item}
+                      </span>
+                    </td>
+                    <td className="px-5 py-3">
+                      <p className="text-xs font-bold text-slate-800 truncate max-w-70" title={row.description}>
+                        {row.description}
+                      </p>
+                    </td>
+                    <td className="px-5 py-3 text-center">
+                      <span className="text-xs font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                        {row.expected_qty}
+                      </span>
+                    </td>
+                    <td className="px-5 py-3 text-center">
+                      <div className="flex items-center justify-center">
+                        {row.callout_found ? (
+                          <div className="flex items-center gap-1 text-green-600">
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                            <span className="text-[10px] font-bold uppercase tracking-tighter">Found</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1 text-red-500">
+                            <XCircle className="w-3.5 h-3.5" />
+                            <span className="text-[10px] font-bold uppercase tracking-tighter">Missing</span>
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-5 py-3 text-right">
+                      <div className={cn(
+                        "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold border transition-all",
+                        isPassed 
+                          ? "bg-green-50 text-green-600 border-green-100" 
+                          : "bg-red-50 text-red-600 border-red-100"
+                      )}>
+                        {isPassed ? <CheckCircle2 className="w-3.5 h-3.5" /> : <XCircle className="w-3.5 h-3.5" />}
+                        {row.status}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+              
+              {filteredItems.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="px-5 py-10 text-center text-slate-500 italic text-xs">
+                    No items match your search/filter criteria.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         )}
-
-        {/* Empty state */}
-        {!loading && (!items || items.length === 0) && (
-          <Box
-            sx={{
-              py: 8,
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              color: 'text.disabled',
-            }}
-          >
-            <AssignmentTurnedInIcon sx={{ fontSize: 52, opacity: 0.12, mb: 1.5 }} />
-            <Typography variant="body2">No results yet.</Typography>
-            <Typography variant="caption">Upload a drawing and run validation.</Typography>
-          </Box>
-        )}
-
-        {/* Results table */}
-        {!loading && items && items.length > 0 && (
-          <TableContainer sx={{ maxHeight: 420 }}>
-            <Table stickyHeader size="small">
-              <TableHead>
-                <TableRow>
-                  {[
-                    { label: 'Item',         width: 60  },
-                    { label: 'Description',  width: null },
-                    { label: 'Exp. Qty',     width: 80  },
-                    { label: 'Callout',      width: 90  },
-                    { label: 'Status',       width: 90, align: 'center' },
-                  ].map(({ label, width, align }) => (
-                    <TableCell key={label} align={align ?? 'left'} sx={{ width }}>
-                      {label}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              </TableHead>
-
-              <TableBody>
-                {items.map((row) => {
-                  const isPassed = row.status === 'PASS';
-                  return (
-                    <TableRow
-                      key={row.item}
-                      sx={{
-                        '&:nth-of-type(even)': { background: 'rgba(0,0,0,0.015)' },
-                        '&:hover': { background: 'rgba(13,71,161,0.03)' },
-                        transition: 'background 0.1s',
-                      }}
-                    >
-                      {/* Item number */}
-                      <TableCell>
-                        <Typography variant="body2" fontWeight={700} color="primary.main">
-                          #{row.item}
-                        </Typography>
-                      </TableCell>
-
-                      {/* Description */}
-                      <TableCell>
-                        <Typography
-                          variant="body2"
-                          fontWeight={500}
-                          sx={{
-                            maxWidth: 260,
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                          }}
-                        >
-                          {row.description}
-                        </Typography>
-                      </TableCell>
-
-                      {/* Expected qty — shown as a neutral badge */}
-                      <TableCell>
-                        <Chip
-                          label={row.expected_qty}
-                          size="small"
-                          sx={{
-                            fontWeight: 700,
-                            fontSize: '0.75rem',
-                            background: 'rgba(0,0,0,0.06)',
-                            color: 'text.primary',
-                            height: 22,
-                          }}
-                        />
-                      </TableCell>
-
-                      {/* Callout found indicator */}
-                      <TableCell>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                          {row.callout_found ? (
-                            <>
-                              <CheckCircleOutlineIcon sx={{ fontSize: 15, color: '#2E7D32' }} />
-                              <Typography variant="caption" fontWeight={700} sx={{ color: '#2E7D32' }}>
-                                YES
-                              </Typography>
-                            </>
-                          ) : (
-                            <>
-                              <HighlightOffIcon sx={{ fontSize: 15, color: '#C62828' }} />
-                              <Typography variant="caption" fontWeight={700} sx={{ color: '#C62828' }}>
-                                NO
-                              </Typography>
-                            </>
-                          )}
-                        </Box>
-                      </TableCell>
-
-                      {/* Status chip — green PASS / red FAIL */}
-                      <TableCell align="center">
-                        <Chip
-                          label={row.status}
-                          size="small"
-                          icon={
-                            isPassed
-                              ? <CheckCircleOutlineIcon style={{ fontSize: 12 }} />
-                              : <HighlightOffIcon style={{ fontSize: 12 }} />
-                          }
-                          sx={{
-                            fontWeight: 700,
-                            fontSize: '0.70rem',
-                            height: 22,
-                            ...(isPassed
-                              ? {
-                                  background: '#E8F5E9',
-                                  color: '#2E7D32',
-                                  '& .MuiChip-icon': { color: '#2E7D32' },
-                                }
-                              : {
-                                  background: '#FFEBEE',
-                                  color: '#C62828',
-                                  '& .MuiChip-icon': { color: '#C62828' },
-                                }),
-                          }}
-                        />
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
-
-export default ValidationTable;

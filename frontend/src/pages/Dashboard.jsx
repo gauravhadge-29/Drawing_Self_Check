@@ -1,256 +1,191 @@
-import React, { useState, useCallback } from 'react';
-import {
-  Box,
-  Container,
-  Grid,
-  Typography,
-  Paper,
-  Fade,
-} from '@mui/material';
-import CloudUploadIcon from '@mui/icons-material/CloudUpload';
-import Header from '../components/Header';
-import UploadPanel from '../components/UploadPanel';
-import PdfViewer from '../components/PdfViewer';
-import SummaryCards from '../components/SummaryCards';
-import ValidationTable from '../components/ValidationTable';
-import MaterialValidationCard from '../components/MaterialValidationCard';
+import React, { useState, useCallback, useRef } from 'react';
+import { Sidebar } from '../components/layout/Sidebar';
+import { Navbar } from '../components/layout/Navbar';
+import { PdfViewer } from '../components/PdfViewer';
+import { SummaryCards } from '../components/SummaryCards';
+import { ValidationTable } from '../components/ValidationTable';
+import { MaterialValidationCard } from '../components/MaterialValidationCard';
+import { PartValidationCard } from '../components/PartValidationCard';
 import { uploadDrawing } from '../api/api';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  CloudUpload, 
+  FileText, 
+  AlertCircle, 
+  HardHat,
+  ScanSearch,
+  ClipboardCheck
+} from 'lucide-react';
 
-/**
- * Dashboard — primary page of the Drawing Validation System.
- *
- * Two views:
- *   1. Landing  — shown when no file has been chosen yet.
- *   2. Analysis — shown once a PDF is selected; contains the upload control
- *                 bar, the PDF viewer and the validation results panel.
- *
- * State:
- *   file     {File|null}     The currently selected PDF.
- *   results  {Object|null}   API response: { summary, items }.
- *   loading  {boolean}       True while the API call is in flight.
- *   error    {string|null}   Error message or null.
- */
 function Dashboard() {
-  const [file,    setFile]    = useState(null);
+  const [file, setFile] = useState(null);
   const [results, setResults] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [error,   setError]   = useState(null);
-
-  // ── Handlers ────────────────────────────────────────────────────────────────
+  const [error, setError] = useState(null);
+  const [validationStatus, setValidationStatus] = useState('idle'); // idle, processing, completed
+  
+  const fileInputRef = useRef(null);
 
   const handleFileSelect = useCallback((f) => {
-    setFile(f);
-    setResults(null);
-    setError(null);
+    if (f && f.type === 'application/pdf') {
+      setFile(f);
+      setResults(null);
+      setError(null);
+      setValidationStatus('idle');
+    }
   }, []);
 
   const handleValidate = useCallback(async () => {
     if (!file) return;
     setLoading(true);
     setError(null);
+    setValidationStatus('processing');
 
     try {
       const data = await uploadDrawing(file);
       setResults(data);
+      setValidationStatus('completed');
     } catch (err) {
-      // Surface the most descriptive message available
-      const msg =
-        err.message ??
-        'Validation failed. Make sure the backend is running on http://localhost:8000.';
+      const msg = err.message ?? 'Validation failed. Make sure the backend is running.';
       setError(msg);
+      setValidationStatus('idle');
     } finally {
       setLoading(false);
     }
   }, [file]);
 
-  // ── Render ───────────────────────────────────────────────────────────────────
-
   return (
-    <Box
-      sx={{
-        minHeight: '100vh',
-        background: '#F0F2F5',
-        display: 'flex',
-        flexDirection: 'column',
-      }}
-    >
-      <Header />
+    <div className="flex h-screen overflow-hidden text-slate-900">
+      <Sidebar />
+      
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        <Navbar 
+          projectName={file ? file.name : "Engineering Drawing Validator"}
+          status={validationStatus}
+          onUpload={() => fileInputRef.current?.click()}
+          onRun={handleValidate}
+          isLoading={loading}
+          canRun={!!file && !loading}
+        />
+        
+        <main className="flex-1 overflow-y-auto p-4 md:p-6 custom-scrollbar">
+          <input 
+            type="file" 
+            ref={fileInputRef} 
+            onChange={(e) => handleFileSelect(e.target.files?.[0])} 
+            accept=".pdf" 
+            className="hidden" 
+          />
 
-      {/* Spacer pushes content below the fixed 64px AppBar */}
-      <Box sx={{ mt: '64px', flexGrow: 1 }}>
-        {!file ? (
-          // ── LANDING VIEW ─────────────────────────────────────────────────────
-          <Fade in timeout={400}>
-            <Box
-              sx={{
-                minHeight: 'calc(100vh - 64px)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                p: 3,
-              }}
-            >
-              <Box sx={{ textAlign: 'center', maxWidth: 540, width: '100%' }}>
-                {/* Hero icon */}
-                <Box
-                  sx={{
-                    width: 96,
-                    height: 96,
-                    borderRadius: '24px',
-                    background: 'linear-gradient(135deg, #1565C0 0%, #0D47A1 100%)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    mx: 'auto',
-                    mb: 3,
-                    boxShadow: '0 10px 36px rgba(13, 71, 161, 0.32)',
-                  }}
-                >
-                  <CloudUploadIcon sx={{ fontSize: 48, color: '#fff' }} />
-                </Box>
+          <AnimatePresence mode="wait">
+            {!file ? (
+              <motion.div 
+                key="landing"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="h-full flex flex-col items-center justify-center max-w-4xl mx-auto text-center"
+              >
+                <div className="panel-industrial w-full max-w-4xl p-8 md:p-12 border border-slate-200/80 relative overflow-hidden">
+                  <div className="absolute -top-20 -right-16 w-64 h-64 rounded-full bg-blue-200/35 blur-3xl" />
+                  <div className="absolute -bottom-16 -left-12 w-56 h-56 rounded-full bg-slate-300/35 blur-3xl" />
 
-                <Typography variant="h4" gutterBottom>
-                  Drawing Validation System
-                </Typography>
-                <Typography
-                  variant="body1"
-                  color="text.secondary"
-                  sx={{ mb: 4, lineHeight: 1.75 }}
-                >
-                  Upload an engineering drawing PDF to automatically validate all
-                  BOM items against callout references in the drawing.
-                </Typography>
+                  <div className="relative z-10">
+                    <div className="w-20 h-20 bg-linear-to-br from-primary to-slate-700 rounded-3xl flex items-center justify-center mb-8 shadow-xl shadow-slate-800/20 border border-slate-500/50 mx-auto">
+                      <CloudUpload className="w-10 h-10 text-slate-100" />
+                    </div>
+                    
+                    <h2 className="text-3xl md:text-5xl font-bold tracking-tight text-slate-900 mb-4">
+                      Mechanical Drawing Intelligence
+                    </h2>
+                    <p className="text-base md:text-lg text-slate-600 mb-10 leading-relaxed max-w-2xl mx-auto">
+                      Upload engineering drawing PDFs and instantly verify BOM callouts,
+                      part references, and material compliance with production-grade confidence.
+                    </p>
 
-                {/* Drag-and-drop zone */}
-                <LandingDropZone onFileSelect={handleFileSelect} />
+                    <div 
+                      onClick={() => fileInputRef.current?.click()}
+                      className="w-full max-w-xl mx-auto p-8 border-2 border-dashed border-slate-400/60 rounded-3xl bg-white/80 hover:border-primary hover:bg-slate-50 transition-all cursor-pointer group"
+                    >
+                      <div className="flex flex-col items-center gap-3">
+                        <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center group-hover:bg-blue-100 transition-colors">
+                          <FileText className="w-6 h-6 text-slate-500 group-hover:text-primary" />
+                        </div>
+                        <p className="font-bold text-slate-800">Click to upload or drag and drop</p>
+                        <p className="text-sm text-slate-500">PDF engineering drawings only</p>
+                      </div>
+                    </div>
 
-                <Typography variant="caption" color="text.disabled" sx={{ mt: 2, display: 'block' }}>
-                  Supported format: PDF · Vector engineering drawings
-                </Typography>
-              </Box>
-            </Box>
-          </Fade>
-        ) : (
-          // ── ANALYSIS VIEW ─────────────────────────────────────────────────────
-          <Fade in timeout={300}>
-            <Container
-              maxWidth={false}
-              disableGutters
-              sx={{ px: { xs: 2, md: 3 }, py: 2 }}
-            >
-              {/* Upload control bar */}
-              <UploadPanel
-                file={file}
-                loading={loading}
-                error={error}
-                onFileSelect={handleFileSelect}
-                onValidate={handleValidate}
-              />
+                    <div className="mt-10 grid grid-cols-1 sm:grid-cols-3 gap-3 text-left">
+                      <FeatureCard icon={ScanSearch} title="Callout Detection" subtitle="Cross-check drawing callouts against BOM lines." />
+                      <FeatureCard icon={ClipboardCheck} title="Validation Report" subtitle="Get pass/fail traceability by item." />
+                      <FeatureCard icon={HardHat} title="Material Compliance" subtitle="Confirm materials and finishes match standards." />
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            ) : (
+              <motion.div 
+                key="dashboard"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6 h-full min-h-190"
+              >
+                {/* Error Toast if any */}
+                {error && (
+                  <div className="lg:col-span-12 bg-red-50/95 border border-red-200 p-4 rounded-2xl flex items-center gap-3 text-red-700 animate-in fade-in slide-in-from-top-4 shadow-sm">
+                    <AlertCircle className="w-5 h-5" />
+                    <p className="text-sm font-bold">{error}</p>
+                  </div>
+                )}
 
-              {/* Main two-column layout */}
-              <Grid container spacing={2} sx={{ minHeight: 'calc(100vh - 185px)' }}>
-                {/* ── Left column: PDF Viewer ── */}
-                <Grid
-                  item
-                  xs={12}
-                  md={6}
-                  lg={5}
-                  sx={{ display: 'flex', flexDirection: 'column' }}
-                >
+                {/* Left: PDF Viewer (60%) */}
+                <div className="lg:col-span-7 xl:col-span-8 flex flex-col min-h-150">
                   <PdfViewer file={file} />
-                </Grid>
+                </div>
 
-                {/* ── Right column: Summary + Table ── */}
-                <Grid
-                  item
-                  xs={12}
-                  md={6}
-                  lg={7}
-                  sx={{ display: 'flex', flexDirection: 'column' }}
-                >
-                  <SummaryCards summary={results?.summary ?? null} loading={loading} />
-
-                  <Grid container spacing={2} sx={{ flexGrow: 1 }}>
-                    <Grid item xs={12} md={8} sx={{ display: 'flex', flexDirection: 'column' }}>
-                      <Box sx={{ flexGrow: 1 }}>
-                        <ValidationTable
-                          items={results?.callout_validation ?? results?.items ?? null}
-                          loading={loading}
-                        />
-                      </Box>
-                    </Grid>
-                    <Grid item xs={12} md={4}>
-                      <MaterialValidationCard
-                        materialValidation={results?.material_validation ?? null}
-                        loading={loading}
+                {/* Right: Summary & Results (40%) */}
+                <div className="lg:col-span-5 xl:col-span-4 flex flex-col gap-6">
+                  <SummaryCards summary={results?.summary} loading={loading} />
+                  
+                  <div className="flex-1 grid grid-cols-1 gap-6 overflow-hidden">
+                    <ValidationTable 
+                      items={results?.callout_validation ?? results?.items} 
+                      loading={loading} 
+                    />
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-6">
+                      <MaterialValidationCard 
+                        materialValidation={results?.material_validation} 
+                        loading={loading} 
                       />
-                    </Grid>
-                  </Grid>
-                </Grid>
-              </Grid>
-            </Container>
-          </Fade>
-        )}
-      </Box>
-    </Box>
+                      <PartValidationCard 
+                        partValidation={results?.part_validation} 
+                        loading={loading} 
+                      />
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </main>
+      </div>
+    </div>
   );
 }
 
-// ── Landing drag-and-drop upload zone ─────────────────────────────────────────
-
-/**
- * LandingDropZone — interactive upload area shown on the welcome screen.
- * Clicking opens a file picker; dragging a PDF onto it also works.
- */
-function LandingDropZone({ onFileSelect }) {
-  const inputRef = React.useRef(null);
-  const [dragOver, setDragOver] = React.useState(false);
-
-  const pick = (f) => {
-    if (f && f.type === 'application/pdf') onFileSelect(f);
-  };
-
+function FeatureCard({ icon: Icon, title, subtitle }) {
   return (
-    <Paper
-      elevation={0}
-      onClick={() => inputRef.current?.click()}
-      onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-      onDragLeave={() => setDragOver(false)}
-      onDrop={(e) => { e.preventDefault(); setDragOver(false); pick(e.dataTransfer.files?.[0]); }}
-      sx={{
-        border: '2px dashed',
-        borderColor: dragOver ? 'primary.main' : 'rgba(0,0,0,0.14)',
-        borderRadius: 4,
-        py: 5,
-        px: 3,
-        cursor: 'pointer',
-        background: dragOver ? 'rgba(13,71,161,0.04)' : 'rgba(255,255,255,0.75)',
-        backdropFilter: 'blur(8px)',
-        transition: 'border-color 0.2s, background 0.2s',
-        '&:hover': {
-          borderColor: 'primary.main',
-          background: 'rgba(13,71,161,0.03)',
-        },
-      }}
-    >
-      <input
-        ref={inputRef}
-        type="file"
-        accept=".pdf"
-        style={{ display: 'none' }}
-        onChange={(e) => pick(e.target.files?.[0])}
-      />
-      <CloudUploadIcon
-        sx={{ fontSize: 36, color: dragOver ? 'primary.main' : 'text.disabled', mb: 1 }}
-      />
-      <Typography
-        variant="body1"
-        fontWeight={600}
-        color={dragOver ? 'primary.main' : 'text.secondary'}
-      >
-        {dragOver ? 'Drop the PDF here' : 'Click to upload  ·  or drag & drop'}
-      </Typography>
-    </Paper>
+    <div className="rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 backdrop-blur-sm shadow-sm">
+      <div className="flex items-center gap-2 mb-1.5">
+        <div className="w-7 h-7 rounded-lg bg-primary text-slate-100 flex items-center justify-center">
+          <Icon className="w-4 h-4" />
+        </div>
+        <p className="text-sm font-semibold text-slate-900">{title}</p>
+      </div>
+      <p className="text-xs text-slate-600 leading-relaxed">{subtitle}</p>
+    </div>
   );
 }
 

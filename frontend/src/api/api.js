@@ -3,7 +3,7 @@ import axios from 'axios';
 /**
  * API layer — all backend communication is centralised here.
  *
- * The FastAPI backend is expected at http://localhost:8000.
+ * The FastAPI backend is expected at http://localhost:7000.
  * Set VITE_API_BASE_URL to override for different environments.
  */
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:7000';
